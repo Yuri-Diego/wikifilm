@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express';
 import { getTMDbService } from '../tmdb.service.js';
 
+const tmdb = getTMDbService();
+
 export class MoviesController {
   static async search(req: Request, res: Response): Promise<void> {
     try {
@@ -11,10 +13,9 @@ export class MoviesController {
         return;
       }
 
-      const tmdb = getTMDbService();
       const movies = await tmdb.searchMovies(query);
 
-      res.json(movies);
+      res.status(200).json({message: 'success', data: movies});
     } catch (error) {
       console.error('Error searching movies:', error);
       res.status(500).json({ 
@@ -37,7 +38,6 @@ export class MoviesController {
         return;
       }
 
-      const tmdb = getTMDbService();
       const movie = await tmdb.getMovieDetails(movieId);
 
       res.json(movie);
@@ -45,6 +45,26 @@ export class MoviesController {
       console.error('Error fetching movie details:', error);
       res.status(500).json({ 
         error: error instanceof Error ? error.message : 'Failed to fetch movie details' 
+      });
+    }
+  }
+
+  static async getRecentMovies(req: Request, res: Response): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string);
+
+      if (!page) {
+        res.status(400).json({ error: 'page parameter is required' });
+        return;
+      }
+
+      const movies = await tmdb.getRecentMovies(page);
+
+      res.status(200).json({message: 'success', data: movies});
+    } catch (error) {
+      console.error('Error searching movies:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Failed to search movies' 
       });
     }
   }

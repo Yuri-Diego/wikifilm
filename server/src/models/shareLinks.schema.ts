@@ -22,17 +22,17 @@ export class ShareLinkModel {
     }
 
     static async findByShareId(shareId: string): Promise<ShareLinkWithMovies | null> {
-    const shareLink = await prisma.shareLink.findUnique({
-      where: { shareId },
-    });
+      const shareLink = await prisma.shareLink.findUnique({
+        where: { shareId },
+      });
 
-    if (!shareLink) {
-      return null;
+      if (!shareLink) {
+        return null;
+      }
+
+      return {
+        ...shareLink,
+        moviesData: shareLink.moviesData as Favorite[],
+      };
     }
-
-    return {
-      ...shareLink,
-      moviesData: shareLink.moviesData as Favorite[],
-    };
-  }
 }

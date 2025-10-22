@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { number, z } from 'zod';
 
 const movieSearchResultSchema = z.object({
   id: z.number(),
@@ -93,6 +93,48 @@ export class TMDbService {
       runtime: movie.runtime,
       genres: movie.genres.map((g) => g.name),
     };
+  }
+
+  async getRecentMovies(page: number, limit = 15) {
+    const today = new Date().toISOString().split('T')[0] ?? '1970-01-01';
+    const params = new URLSearchParams({
+      api_key: this.apiKey,
+      language: 'pt-BR',
+      sort_by: 'primary_release_date.desc',
+      'primary_release_date.lte': today,
+      'vote_count.gte': '10',
+      include_adult: 'false',
+      page: '1',
+    });
+    const url = `https://api.themoviedb.org/3/discover/movie?${params.toString()}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`TMDb API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    const results = z.array(movieSearchResultSchema).parse(data.results);
+
+    const filtered = results.filter(
+      (movie) => movie.release_date && movie.release_date <= today);
+
+    const limited = filtered.slice(0, limit);
+
+    return limited.map((movie) => ({
+      id: movie.id,
+      title: movie.title,
+      posterPath: movie.poster_path,
+      backdropPath: movie.backdrop_path,
+      rating: movie.vote_average,
+      releaseDate: movie.release_date,
+      year: movie.release_date
+        ? new Date(movie.release_date).getFullYear().toString()
+        : 'N/A',
+      overview: movie.overview,
+    }));
   }
 }
 
