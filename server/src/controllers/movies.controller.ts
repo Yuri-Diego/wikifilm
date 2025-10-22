@@ -22,4 +22,30 @@ export class MoviesController {
       });
     }
   }
+
+  static async getDetails(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        res.status(400).json({ error: 'Movie ID is required' });
+        return;
+      }
+
+      const movieId = parseInt(req.params.id);
+
+      if (isNaN(movieId)) {
+        res.status(400).json({ error: 'Invalid movie ID' });
+        return;
+      }
+
+      const tmdb = getTMDbService();
+      const movie = await tmdb.getMovieDetails(movieId);
+
+      res.json(movie);
+    } catch (error) {
+      console.error('Error fetching movie details:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Failed to fetch movie details' 
+      });
+    }
+  }
 }
