@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Favorite {
+  id            Int      @id @default(autoincrement())
+  tmdbMovieId   Int      @unique @map("tmdb_movie_id")
+  title         String
+  posterPath    String?  @map("poster_path")
+  backdropPath  String?  @map("backdrop_path")
+  rating        Float?
+  year          String?
+  overview      String?
+  releaseDate   String?  @map("release_date")
+  runtime       Int?
+  genres        String[]
+
+  @@map("favorites")
+}
+
+model ShareLink {
+  id         Int      @id @default(autoincrement())
+  shareId    String   @unique @map("share_id")
+  moviesData Json     @map("movies_data")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("share_links")
+}
