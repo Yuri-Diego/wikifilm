@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { FavoriteModel, type CreateFavoriteData } from '../models/favorite.schema.js';
+import { FavoriteModel } from '../models/favorite.schema.js';
 import z from 'zod';
 
 const createFavoriteSchema = z.object({
@@ -38,7 +38,7 @@ export class FavoritesController {
         return;
       }
 
-      const favorite = await FavoriteModel.create(validatedData as CreateFavoriteData);
+      const favorite = await FavoriteModel.create(validatedData);
       res.status(201).json({message: 'success', data: favorite});
     } catch (error) {
       if (error instanceof z.ZodError) {
