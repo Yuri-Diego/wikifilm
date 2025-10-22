@@ -45,4 +45,10 @@ export class FavoriteModel{
       },
     });
   }
+
+  static async delete(tmdbMovieId: number): Promise<Favorite> {
+    return prisma.favorite.delete({
+      where: { tmdbMovieId },
+    });
+  }
 }

@@ -19,7 +19,7 @@ export class FavoritesController {
   static async getAll(req: Request, res: Response): Promise<void> {
     try {
       const favorites = await FavoriteModel.findAll();
-      res.json(favorites);
+      res.status(200).json({message: 'success', data: favorites});
     } catch (error) {
       console.error('Error fetching favorites:', error);
       res.status(500).json({ 
@@ -39,7 +39,7 @@ export class FavoritesController {
       }
 
       const favorite = await FavoriteModel.create(validatedData as CreateFavoriteData);
-      res.status(201).json(favorite);
+      res.status(201).json({message: 'success', data: favorite});
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: 'Invalid request data', details: error.issues });
@@ -48,6 +48,31 @@ export class FavoritesController {
       console.error('Error adding favorite:', error);
       res.status(500).json({ 
         error: error instanceof Error ? error.message : 'Failed to add favorite' 
+      });
+    }
+  }
+
+  static async delete(req: Request, res: Response): Promise<void> {
+    try {
+      const idParam = req.params.tmdbMovieId;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing movie ID' });
+        return;
+      }
+
+      const tmdbMovieId = parseInt(idParam, 10);
+
+      if (isNaN(tmdbMovieId)) {
+        res.status(400).json({ error: 'Invalid movie ID' });
+        return;
+      }
+
+      await FavoriteModel.delete(tmdbMovieId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Failed to remove favorite' 
       });
     }
   }
