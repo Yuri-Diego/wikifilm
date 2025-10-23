@@ -1,45 +1,70 @@
 import axios from "axios";
 
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
+// ⚙️ Cria uma instância Axios configurada
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+function handleAxiosError(error) {
+  const status = error.response?.status;
+  const message =
+    error.response?.data?.error ||
+    error.response?.data?.message ||
+    error.message ||
+    "Erro desconhecido";
+  console.error(`Erro ${status || ""}: ${message}`);
+  throw new Error(message);
+}
+
 export async function searchMovies(query) {
     try {
-        const response = await axios.get(`/api/movies/search`, {
+        const response = await api.get(`/movies/search`, {
             params: { query },
         });
         return response.data;
     } catch (error) {
-        throw new Error("Failed to search movies");
+        handleAxiosError(error)
     }
 }
 
 export async function getMovieDetails(movieId) {
     try {
-        const response = await axios.get(`/api/movies/${movieId}`);
+        const response = await api.get(`/movies/${movieId}`);
         return response.data;
     } catch (error) {
-        throw new Error("Failed to fetch movie details");
+        handleAxiosError(error)
     }
 }
 
-export async function getRecentMovies() {
+export async function getRecentMovies(page = 1) {
     try {
-        const response = await axios.get(`/api/movies/recent`)
+        const response = await api.get(`/movies/recent?page=${page}`);
+        return response.data;
     } catch (error) {
-        throw new Error("Failed to fetch recent movies");
+        handleAxiosError(error)
     }
 }
 
 export async function getFavorites() {
     try {
-        const response = await axios.get("/api/favorites");
+        const response = await api.get("/favorites");
+        console.log(response.data)
         return response.data;
     } catch (error) {
-        throw new Error("Failed to fetch favorites");
+        handleAxiosError(error)
     }
 }
 
 export async function addFavorite(movie) {
     try {
-        const response = await axios.post("/api/favorites", {
+        const response = await api.post("/favorites", {
             tmdbMovieId: movie.id,
             title: movie.title,
             posterPath: movie.posterPath,
@@ -53,39 +78,36 @@ export async function addFavorite(movie) {
         });
         return response.data;
     } catch (error) {
-        const message =
-            error.response?.data?.error || "Failed to add favorite";
-        throw new Error(message);
+        handleAxiosError(error)
     }
 }
 
 export async function removeFavorite(tmdbMovieId) {
     try {
-        await axios.delete(`/api/favorites/${tmdbMovieId}`);
+        await api.delete(`/favorites/${tmdbMovieId}`);
     } catch (error) {
         const status = error.response?.status;
         if (status !== 204) {
-            throw new Error("Failed to remove favorite");
+            handleAxiosError(error)
         }
     }
 }
 
 export async function createShareLink() {
     try {
-        const response = await axios.post("/api/favorites/share");
+        const response = await api.post("/favorites/share");
         return response.data;
     } catch (error) {
-        const message =
-            error.response?.data?.error || "Failed to create share link";
-        throw new Error(message);
+        handleAxiosError(error)
     }
 }
 
 export async function getSharedFavorites(shareId) {
     try {
-        const response = await axios.get(`/api/favorites/share/${shareId}`);
+        const response = await api.get(`/favorites/share/${shareId}`);
         return response.data;
     } catch (error) {
-        throw new Error("Failed to fetch shared favorites");
+        handleAxiosError(error)
     }
 }
+export default api;
