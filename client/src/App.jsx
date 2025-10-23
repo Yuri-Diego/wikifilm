@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import HomePage from "@/pages/HomePage.jsx";
-import { queryClient } from "./lib/queryClient.js";
+import { queryClient } from "@/lib/queryClient.js";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "./components/ui/tooltip.jsx";
 

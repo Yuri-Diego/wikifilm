@@ -42,7 +42,7 @@ export default function Header({
         <div className="flex items-center gap-2">
           <Film className="w-6 h-6 text-primary" />
           <h1 className="font-display font-bold text-xl" data-testid="text-app-title">
-            MovieList
+            WikiFilm
           </h1>
         </div>
 
