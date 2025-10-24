@@ -23,27 +23,27 @@ export default function MovieCard({
 
   return (
     <Card
-      className="group relative overflow-hidden cursor-pointer hover-elevate transition-all duration-300"
+      className="group relative overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 "
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onClick?.(id)}
       data-testid={`card-movie-${id}`}
     >
-      <div className="aspect-[2/3] relative">
+      <div className="aspect-[2/3] relative w-full h-full">
         {posterPath ? (
           <img
             src={posterPath}
             alt={title}
-            className="w-full h-full object-cover "
+            className="absolut inset-0 w-full h-full object-cover transition-transform duration-400 ease-out group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full bg-muted flex items-center justify-center">
             <Star className="w-12 h-12 text-muted-foreground/30" />
           </div>
         )}
-
+        
         <Badge
-          className="absolute right-1 bg-yellow-300 text-black backdrop-blur-sm border-0 px-3 py-1 shadow-md"
+          className="absolute top-1 left-1 z-10 no-default-hover-elevate bg-yellow-300 text-black backdrop-blur-sm py-1 shadow-md transition-transform duration-500 ease-out group-hover:scale-95"
           data-testid={`badge-rating-${id}`}
         >
           <Star className="w-4 h-4 fill-black text-black mr-1.5" />
