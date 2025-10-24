@@ -55,7 +55,6 @@ export async function getRecentMovies(page = 1) {
 export async function getFavorites() {
     try {
         const response = await api.get("/favorites");
-        console.log(response.data)
         return response.data;
     } catch (error) {
         handleAxiosError(error)

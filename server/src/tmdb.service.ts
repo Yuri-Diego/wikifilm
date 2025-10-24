@@ -95,7 +95,7 @@ export class TMDbService {
     };
   }
 
-  async getRecentMovies(page: number, limit = 15) {
+  async getRecentMovies(currentPage: number, limit = 40) {
     const today = new Date().toISOString().split('T')[0] ?? '1970-01-01';
     const params = new URLSearchParams({
       api_key: this.apiKey,
@@ -104,7 +104,7 @@ export class TMDbService {
       'primary_release_date.lte': today,
       'vote_count.gte': '10',
       include_adult: 'false',
-      page: '1',
+      page: String(currentPage) ||'1',
     });
     const url = `https://api.themoviedb.org/3/discover/movie?${params.toString()}`;
 

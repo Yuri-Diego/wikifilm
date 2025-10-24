@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/Header.jsx";
 import MovieGrid from "@/components/MovieGrid.jsx";
-import { getRecentMovies } from "@/lib/api.js";
+import { getRecentMovies, addFavorite, removeFavorite, getFavorites } from "@/lib/api.js";
 
 export default function HomePage() {
     const [, setLocation] = useLocation();
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedMovieId, setSelectedMovieId] = useState(null);
+    const [favorites, setFavorites] = useState([]);
 
     // Fetch recent movies
     useEffect(() => {
@@ -16,7 +17,6 @@ export default function HomePage() {
             try {
                 setLoading(true);
                 const response = await getRecentMovies();
-                console.log("getRecentMovies data:", response.data);
                 setMovies(response.data);
             } catch (error) {
                 console.error("Erro ao buscar filmes:", error.message);
@@ -27,14 +27,36 @@ export default function HomePage() {
         fetchRecentMovies();
     }, []);
 
-    // Garante que sejam sempre arrays
-    const favoritesList = Array.isArray(movies) ? movies : [];
-    const moviesList = Array.isArray(movies) ? movies : [];
-    const favoritesSet = new Set(favoritesList.map((fav) => fav.tmdbMovieId));
+    // Fetch Favorites movies
+    useEffect(() => {
+        async function fetchFavorites() {
+            try {
+                const response = await getFavorites();
+                setFavorites(response.data || []);
+            } catch (error) {
+                console.error("Erro ao buscar favoritos:", error);
+            }
+        }
+        fetchFavorites();
+    }, []);
 
-    const handleFavoriteToggle = (id) => {
-        console.log("Favorite toggle for movie:", id);
-        // Implementar lógica de favoritos aqui
+
+    const handleFavoriteToggle = async (id) => {
+        try {
+            if (favorites.some((f) => f.tmdbMovieId === id)) {
+                await removeFavorite(id);
+                setFavorites((prev) =>
+                    prev.filter((f) => f.tmdbMovieId !== id)
+                );
+            } else {
+                const movie = movies.find((m) => m.id === id)
+                if (!movie) return;
+                const newFav = await addFavorite(movie);
+                setFavorites((prev) => [...prev, newFav.data]);
+            }
+        } catch (error) {
+            console.error("Erro ao alterar favorito:", error);
+        }
     };
 
     const handleMovieClick = (id) => {
@@ -46,7 +68,7 @@ export default function HomePage() {
         return (
             <div className="min-h-screen flex flex-col">
                 <Header
-                    favoritesCount={0}
+                    favoritesCount={favorites.length}
                     onFavoritesClick={() => setLocation("/favorites")}
                 />
                 <main className="flex-1 container mx-auto px-4 py-8">
@@ -61,7 +83,7 @@ export default function HomePage() {
     return (
         <div className="min-h-screen flex flex-col">
             <Header
-                favoritesCount={favoritesSet.size}
+                favoritesCount={favorites.length}
                 onFavoritesClick={() => setLocation("/favorites")}
             />
 
@@ -75,13 +97,13 @@ export default function HomePage() {
                     </p>
                 </div>
 
-                {moviesList.length === 0 ? (
+                {movies.length === 0 ? (
                     <div className="text-center text-muted-foreground">
                         Nenhum filme encontrado
                     </div>
                 ) : (
                     <MovieGrid
-                        movies={moviesList.map((movie) => ({
+                        movies={movies.map((movie) => ({
                             id: movie.id,
                             title: movie.title,
                             posterPath: movie.posterPath
@@ -90,7 +112,7 @@ export default function HomePage() {
                             rating: movie.rating ?? 0,
                             year: movie.releaseDate?.split('-')[0] ?? 'N/A',
                         }))}
-                        favorites={favoritesSet}
+                        favorites={new Set(favorites.map((f) => f.tmdbMovieId))}
                         onFavoriteToggle={handleFavoriteToggle}
                         onMovieClick={handleMovieClick}
                     />
