@@ -41,13 +41,14 @@ export interface MovieDetails extends MovieSearchResult {
 export class TMDbService {
   private apiKey: string;
   private baseUrl = 'https://api.themoviedb.org/3';
+  private language = 'language=pt-BR'
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
   async searchMovies(query: string): Promise<MovieSearchResult[]> {
-    const url = `${this.baseUrl}/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(query)}`;
+    const url = `${this.baseUrl}/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(query)}&${this.language}`;
     
     const response = await fetch(url);
     
@@ -70,7 +71,7 @@ export class TMDbService {
   }
 
   async getMovieDetails(movieId: number): Promise<MovieDetails> {
-    const url = `${this.baseUrl}/movie/${movieId}?api_key=${this.apiKey}`;
+    const url = `${this.baseUrl}/movie/${movieId}?api_key=${this.apiKey}&${this.language}`;
     
     const response = await fetch(url);
     
