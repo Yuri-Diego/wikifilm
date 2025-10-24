@@ -60,7 +60,6 @@ export default function HomePage() {
     };
 
     const handleMovieClick = (id) => {
-        console.log("Movie clicked:", id);
         setSelectedMovieId(id);
     };
 
