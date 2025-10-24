@@ -1,13 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
 import Header from "@/components/Header";
 import MovieGrid from "@/components/MovieGrid";
-import { getFavorites, addFavorite, removeFavorite } from "@/lib/api.js";
+import { getFavorites, removeFavorite, getMovieDetails } from "@/lib/api.js";
 import { useLocation } from "wouter";
 import EmptyState from "@/components/EmptyState";
+import MovieDetailsModal from "@/components/MovieDetailsModal";
 
 export default function FavoritesPage() {
     const [, setLocation] = useLocation();
     const [favorites, setFavorites] = useState([]);
+    const [selectedMovieId, setSelectedMovieId] = useState(null);
+    const [selectedMovie, setSelectedMovie] = useState();
+    const [loadingDetails, setLoadingDetails] = useState(true)
 
     // Fetch Favorites movies
     useEffect(() => {
@@ -21,6 +25,31 @@ export default function FavoritesPage() {
         }
         fetchFavorites();
     }, []);
+
+    // Fetch movie details
+    useEffect(() => {
+        async function fetchMovieDetails() {
+            if (!selectedMovieId) {
+                setSelectedMovie(null);
+                return;
+            }
+
+            try {
+                setLoadingDetails(true);
+                const response = await getMovieDetails(selectedMovieId);
+                console.log("Movie details:", response);
+                setSelectedMovie(response.data || response);
+            } catch (error) {
+                console.error("Erro ao buscar detalhes do filme:", error);
+                setSelectedMovie(null);
+            } finally {
+                setLoadingDetails(false);
+            }
+        }
+
+        fetchMovieDetails();
+    }, [selectedMovieId]);
+
 
     const favoritesSet = new Set(favorites.map((f) => f.tmdbMovieId));
 
@@ -38,6 +67,11 @@ export default function FavoritesPage() {
 
     const handleMovieClick = (id) => {
         setSelectedMovieId(id);
+    };
+
+    const handleCloseModal = () => {
+        setSelectedMovieId(null);
+        setSelectedMovie(null);
     };
 
     const favoriteMovies = favorites.map((fav) => ({
@@ -82,6 +116,15 @@ export default function FavoritesPage() {
                     />
                 )}
             </main>
+
+            <MovieDetailsModal
+                isOpen={selectedMovie !== null}
+                onClose={handleCloseModal}
+                movie={selectedMovie}
+                loading={loadingDetails}
+                isFavorite={favorites.some((f) => f.tmdbMovieId === selectedMovieId)}
+                onFavoriteToggle={handleFavoriteToggle}
+            />
         </div>
     );
 }
