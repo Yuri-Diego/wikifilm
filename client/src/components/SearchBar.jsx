@@ -1,5 +1,5 @@
 import { Search, Loader2 } from "lucide-react";
-import { Input } from "./ui/Input";
+import { Input } from "./ui/input.jsx";
 
 export default function SearchBar({
     value,
@@ -19,7 +19,9 @@ export default function SearchBar({
                 data-testid="input-search"
             />
             {isLoading && (
-                <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                </div>
             )}
         </div>
     );
