@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import MovieGrid from "@/components/MovieGrid";
 import { getFavorites, removeFavorite, getMovieDetails } from "@/lib/api.js";

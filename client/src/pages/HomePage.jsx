@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/Header.jsx";
 import MovieGrid from "@/components/MovieGrid.jsx";
-import { getRecentMovies, addFavorite, removeFavorite, getFavorites, getMovieDetails } from "@/lib/api.js";
+import { getRecentMovies, addFavorite, removeFavorite, getFavorites, getMovieDetails, searchMovies } from "@/lib/api.js";
 import EmptyState from "@/components/EmptyState";
 import MovieDetailsModal from "@/components/MovieDetailsModal";
+import SearchBar from "@/components/SearchBar";
+import { debounce } from "lodash";
+
 
 export default function HomePage() {
     const [, setLocation] = useLocation();
@@ -13,7 +16,10 @@ export default function HomePage() {
     const [selectedMovieId, setSelectedMovieId] = useState(null);
     const [favorites, setFavorites] = useState([]);
     const [selectedMovie, setSelectedMovie] = useState();
-    const [loadingDetails, setLoadingDetails] = useState(true)
+    const [loadingDetails, setLoadingDetails] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
 
     // Fetch recent movies
     useEffect(() => {
@@ -68,6 +74,36 @@ export default function HomePage() {
         fetchMovieDetails();
     }, [selectedMovieId]);
 
+    // Fetch search movies
+    const fetchSearchResults = async (query) => {
+        if (!query.trim()) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        try {
+            setIsSearching(true);
+            const response = await searchMovies(query);
+            setSearchResults(response.data || []);
+        } catch (error) {
+            console.error("Erro ao buscar filmes:", error);
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // debounce para pesquisa
+    const debouncedFetch = useMemo(
+        () => debounce(fetchSearchResults, 500),
+        []
+    );
+
+    useEffect(() => {
+        debouncedFetch(searchQuery);
+        return () => debouncedFetch.cancel();
+    }, [searchQuery, debouncedFetch]);
 
     const handleFavoriteToggle = async (id) => {
         try {
@@ -77,7 +113,7 @@ export default function HomePage() {
                     prev.filter((f) => f.tmdbMovieId !== id)
                 );
             } else {
-                const movie = movies.find((m) => m.id === id)
+                const movie = [...movies, ...searchResults].find((m) => m.id === id);
                 if (!movie) return;
                 const newFav = await addFavorite(movie);
                 setFavorites((prev) => [...prev, newFav.data]);
@@ -95,6 +131,14 @@ export default function HomePage() {
         setSelectedMovieId(null);
         setSelectedMovie(null);
     };
+
+    const favoritesSet = useMemo(
+        () => new Set(favorites.map((f) => f.tmdbMovieId)),
+        [favorites]
+    );
+
+    const displayedMovies = searchQuery.trim() ? searchResults : movies;
+    const isShowingSearchResults = searchQuery.trim().length > 0;
 
     if (loading) {
         return (
@@ -120,34 +164,50 @@ export default function HomePage() {
             />
 
             <main className="flex-1 container mx-auto px-4 py-8">
-                <div className="text-center space-y-2 mb-8">
-                    <h2 className="font-display font-bold text-4xl">
-                        Filmes em alta
-                    </h2>
-                    <p className="text-muted-foreground text-lg">
-                        Descubra os filmes mais populares do momento
-                    </p>
+                <div className="flex flex-col items-center gap-8 mb-8">
+                    <div className="text-center space-y-2">
+                        <h2 className="font-display font-bold text-4xl">
+                            {isShowingSearchResults 
+                                ? "Resultados da Pesquisa" 
+                                : "Filmes em Alta"}
+                        </h2>
+                        <p className="text-muted-foreground text-lg">
+                            {isShowingSearchResults
+                                ? `${searchResults.length} ${searchResults.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}`
+                                : "Descubra os filmes mais populares do momento"}
+                        </p>
+                    </div>
+
+                    <SearchBar
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        isLoading={isSearching}
+                    />
                 </div>
 
-                {movies.length === 0 ? (
-                    <EmptyState type="no-results" query={searchQuery} />
-                ) : (
+                {isSearching && (
+                    <div className="text-center py-8">
+                        <p className="text-muted-foreground">Buscando filmes...</p>
+                    </div>
+                )}
+
+                {!isSearching && displayedMovies.length > 0 && (
                     <MovieGrid
-                        movies={movies.map((movie) => ({
+                        movies={displayedMovies.map((movie) => ({
                             id: movie.id,
                             title: movie.title,
                             posterPath: movie.posterPath
                                 ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
                                 : null,
                             rating: movie.rating ?? 0,
-                            year: movie.releaseDate?.split('-')[0] ?? 'N/A',
+                            year: movie.year,
                         }))}
-                        favorites={new Set(favorites.map((f) => f.tmdbMovieId))}
+                        favorites={favoritesSet}
                         onFavoriteToggle={handleFavoriteToggle}
                         onMovieClick={handleMovieClick}
                     />
                 )}
-            </main>
+            </main >
 
 
             <MovieDetailsModal
@@ -159,6 +219,6 @@ export default function HomePage() {
                 onFavoriteToggle={handleFavoriteToggle}
             />
 
-        </div>
+        </div >
     );
 }
