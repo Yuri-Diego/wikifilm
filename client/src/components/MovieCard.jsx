@@ -34,7 +34,7 @@ export default function MovieCard({
           <img
             src={posterPath}
             alt={title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover "
           />
         ) : (
           <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -43,17 +43,16 @@ export default function MovieCard({
         )}
 
         <Badge
-          className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm border-0"
+          className="absolute right-1 bg-yellow-300 text-black backdrop-blur-sm border-0 px-3 py-1 shadow-md"
           data-testid={`badge-rating-${id}`}
         >
-          <Star className="w-3 h-3 fill-chart-2 text-chart-2 mr-1" />
-          {rating?.toFixed(1) ?? 'N/A'}
+          <Star className="w-4 h-4 fill-black text-black mr-1.5" />
+          <span className="font-black text-base">{rating?.toFixed(1) ?? 'N/A'}</span>
         </Badge>
 
         <div
-          className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${
-            isHovered ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"
+            }`}
         >
           <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
             <h3 className="font-display font-semibold text-white text-base line-clamp-2" data-testid={`text-title-${id}`}>
