@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/Header.jsx";
 import MovieGrid from "@/components/MovieGrid.jsx";
-import { getRecentMovies, addFavorite, removeFavorite, getFavorites } from "@/lib/api.js";
+import { getRecentMovies, addFavorite, removeFavorite, getFavorites, getMovieDetails } from "@/lib/api.js";
+import EmptyState from "@/components/EmptyState";
+import MovieDetailsModal from "@/components/MovieDetailsModal";
 
 export default function HomePage() {
     const [, setLocation] = useLocation();
@@ -10,6 +12,8 @@ export default function HomePage() {
     const [loading, setLoading] = useState(true);
     const [selectedMovieId, setSelectedMovieId] = useState(null);
     const [favorites, setFavorites] = useState([]);
+    const [selectedMovie, setSelectedMovie] = useState();
+    const [loadingDetails, setLoadingDetails] = useState(true)
 
     // Fetch recent movies
     useEffect(() => {
@@ -40,6 +44,30 @@ export default function HomePage() {
         fetchFavorites();
     }, []);
 
+    // Fetch movie details
+    useEffect(() => {
+        async function fetchMovieDetails() {
+            if (!selectedMovieId) {
+                setSelectedMovie(null);
+                return;
+            }
+
+            try {
+                setLoadingDetails(true);
+                const response = await getMovieDetails(selectedMovieId);
+                console.log("Movie details:", response);
+                setSelectedMovie(response.data || response);
+            } catch (error) {
+                console.error("Erro ao buscar detalhes do filme:", error);
+                setSelectedMovie(null);
+            } finally {
+                setLoadingDetails(false);
+            }
+        }
+
+        fetchMovieDetails();
+    }, [selectedMovieId]);
+
 
     const handleFavoriteToggle = async (id) => {
         try {
@@ -61,6 +89,11 @@ export default function HomePage() {
 
     const handleMovieClick = (id) => {
         setSelectedMovieId(id);
+    };
+
+    const handleCloseModal = () => {
+        setSelectedMovieId(null);
+        setSelectedMovie(null);
     };
 
     if (loading) {
@@ -97,9 +130,7 @@ export default function HomePage() {
                 </div>
 
                 {movies.length === 0 ? (
-                    <div className="text-center text-muted-foreground">
-                        Nenhum filme encontrado
-                    </div>
+                    <EmptyState type="no-results" query={searchQuery} />
                 ) : (
                     <MovieGrid
                         movies={movies.map((movie) => ({
@@ -117,6 +148,17 @@ export default function HomePage() {
                     />
                 )}
             </main>
+
+
+            <MovieDetailsModal
+                isOpen={selectedMovie !== null}
+                onClose={handleCloseModal}
+                movie={selectedMovie}
+                loading={loadingDetails}
+                isFavorite={favorites.some((f) => f.tmdbMovieId === selectedMovieId)}
+                onFavoriteToggle={handleFavoriteToggle}
+            />
+
         </div>
     );
 }

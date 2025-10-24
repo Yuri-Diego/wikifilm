@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import MovieGrid from "@/components/MovieGrid";
 import { getFavorites, addFavorite, removeFavorite } from "@/lib/api.js";
 import { useLocation } from "wouter";
+import EmptyState from "@/components/EmptyState";
 
 export default function FavoritesPage() {
     const [, setLocation] = useLocation();
@@ -71,7 +72,7 @@ export default function FavoritesPage() {
                 </div>
 
                 {favorites.length === 0 ? (
-                    <h1>SEM FAVORITOS</h1>
+                    <EmptyState type="favorites" />
                 ) : (
                     <MovieGrid
                         movies={favoriteMovies}
