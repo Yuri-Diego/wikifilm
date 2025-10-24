@@ -37,7 +37,6 @@ export default function FavoritesPage() {
             try {
                 setLoadingDetails(true);
                 const response = await getMovieDetails(selectedMovieId);
-                console.log("Movie details:", response);
                 setSelectedMovie(response.data || response);
             } catch (error) {
                 console.error("Erro ao buscar detalhes do filme:", error);
