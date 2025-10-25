@@ -2,32 +2,30 @@ import axios from "axios";
 
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 // ⚙️ Cria uma instância Axios configurada
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+    baseURL: API_BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
 });
 
 function handleAxiosError(error) {
-  const status = error.response?.status;
-  const message =
-    error.response?.data?.error ||
-    error.response?.data?.message ||
-    error.message ||
-    "Erro desconhecido";
-  console.error(`Erro ${status || ""}: ${message}`);
-  throw new Error(message);
+    const status = error.response?.status;
+    const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Erro desconhecido";
+    console.error(`Erro ${status || ""}: ${message}`);
+    throw new Error(message);
 }
 
-export async function searchMovies(query) {
+export async function searchMovies(query, page = 1) {
     try {
-        const response = await api.get(`/movies/search`, {
-            params: { query },
-        });
+        const response = await api.get(`/movies/search?query=${encodeURIComponent(query)}&page=${page}`);
         return response.data;
     } catch (error) {
         handleAxiosError(error)
@@ -43,7 +41,7 @@ export async function getMovieDetails(movieId) {
     }
 }
 
-export async function getRecentMovies(page = 1) {
+export async function getRecentMovies(page) {
     try {
         const response = await api.get(`/movies/recent?page=${page}`);
         return response.data;

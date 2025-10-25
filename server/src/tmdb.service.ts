@@ -1,4 +1,4 @@
-import { number, z } from 'zod';
+import { z } from 'zod';
 
 const movieSearchResultSchema = z.object({
   id: z.number(),
@@ -41,17 +41,32 @@ export interface MovieDetails extends MovieSearchResult {
 export class TMDbService {
   private apiKey: string;
   private baseUrl = 'https://api.themoviedb.org/3';
-  private language = 'language=pt-BR'
+  private posterUrl = 'https://image.tmdb.org/t/p/w500';
+  private backdropUrl = 'https://image.tmdb.org/t/p/original';
+  private language = 'pt-BR';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  async searchMovies(query: string): Promise<MovieSearchResult[]> {
-    const url = `${this.baseUrl}/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(query)}&${this.language}`;
-    
+  async searchMovies(query: string, page: number = 1): Promise<{
+    movies: MovieSearchResult[];
+    page: number;
+    totalPages: number;
+    totalResults: number;
+  }> {
+    const params = new URLSearchParams({
+      api_key: this.apiKey,
+      query: query,
+      language: this.language,
+      page: String(page),
+    });
+
+    const url = `${this.baseUrl}/search/movie?${params.toString()}`;
+    console.log(url)
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`TMDb API error: ${response.statusText}`);
     }
@@ -59,22 +74,29 @@ export class TMDbService {
     const data = await response.json();
     const results = z.array(movieSearchResultSchema).parse(data.results);
 
-    return results.map((movie) => ({
+    const movies = results.map((movie) => ({
       id: movie.id,
       title: movie.title,
-      posterPath: movie.poster_path,
-      backdropPath: movie.backdrop_path,
+      posterPath: `${this.posterUrl}${movie.poster_path}`,
+      backdropPath: `${this.backdropUrl}${movie.backdrop_path}`,
       rating: movie.vote_average,
       year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : 'N/A',
       overview: movie.overview,
     }));
+
+    return {
+      movies,
+      page: data.page,
+      totalPages: data.total_pages,
+      totalResults: data.total_results,
+    }
   }
 
   async getMovieDetails(movieId: number): Promise<MovieDetails> {
-    const url = `${this.baseUrl}/movie/${movieId}?api_key=${this.apiKey}&${this.language}`;
-    
+    const url = `${this.baseUrl}/movie/${movieId}?api_key=${this.apiKey}&language=${this.language}`;
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`TMDb API error: ${response.statusText}`);
     }
@@ -85,8 +107,8 @@ export class TMDbService {
     return {
       id: movie.id,
       title: movie.title,
-      posterPath: movie.poster_path,
-      backdropPath: movie.backdrop_path,
+      posterPath: `${this.posterUrl}${movie.poster_path}`,
+      backdropPath: `${this.backdropUrl}${movie.backdrop_path}`,
       rating: movie.vote_average,
       year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : 'N/A',
       overview: movie.overview,
@@ -96,19 +118,19 @@ export class TMDbService {
     };
   }
 
-  async getRecentMovies(currentPage: number, limit = 40) {
+  async getRecentMovies(currentPage: number = 1) {
     const today = new Date().toISOString().split('T')[0] ?? '1970-01-01';
     const params = new URLSearchParams({
       api_key: this.apiKey,
-      language: 'pt-BR',
+      language: this.language,
       sort_by: 'primary_release_date.desc',
       'primary_release_date.lte': today,
       'vote_count.gte': '10',
       include_adult: 'false',
-      page: String(currentPage) ||'1',
+      page: String(currentPage),
     });
-    const url = `https://api.themoviedb.org/3/discover/movie?${params.toString()}`;
 
+    const url = `https://api.themoviedb.org/3/discover/movie?${params.toString()}`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -116,19 +138,17 @@ export class TMDbService {
     }
 
     const data = await response.json();
-
     const results = z.array(movieSearchResultSchema).parse(data.results);
 
     const filtered = results.filter(
-      (movie) => movie.release_date && movie.release_date <= today);
+      (movie) => movie.release_date && movie.release_date <= today
+    );
 
-    const limited = filtered.slice(0, limit);
-
-    return limited.map((movie) => ({
+    const movies = filtered.map((movie) => ({
       id: movie.id,
       title: movie.title,
-      posterPath: movie.poster_path,
-      backdropPath: movie.backdrop_path,
+      posterPath: `${this.posterUrl}${movie.poster_path}`,
+      backdropPath: `${this.backdropUrl}${movie.backdrop_path}`,
       rating: movie.vote_average,
       releaseDate: movie.release_date,
       year: movie.release_date
@@ -136,6 +156,13 @@ export class TMDbService {
         : 'N/A',
       overview: movie.overview,
     }));
+
+    return {
+      movies,
+      page: data.page,
+      totalPages: data.total_pages,
+      totalResults: data.total_results,
+    };
   }
 }
 
@@ -143,7 +170,7 @@ let tmdbService: TMDbService | null = null;
 
 export function getTMDbService(): TMDbService {
   const apiKey = process.env.TMDB_API_KEY;
-  
+
   if (!apiKey) {
     throw new Error("TMDB_API_KEY environment variable is not set");
   }
