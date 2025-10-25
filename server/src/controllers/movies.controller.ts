@@ -7,13 +7,14 @@ export class MoviesController {
   static async search(req: Request, res: Response): Promise<void> {
     try {
       const query = req.query.query as string;
+      const page = parseInt(req.query.page as string)
 
       if (!query) {
         res.status(400).json({ error: 'Query parameter is required' });
         return;
       }
 
-      const movies = await tmdb.searchMovies(query);
+      const movies = await tmdb.searchMovies(query, page);
 
       res.status(200).json({message: 'success', data: movies});
     } catch (error) {

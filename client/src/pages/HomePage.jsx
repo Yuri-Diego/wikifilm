@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import Header from "@/components/Header.jsx";
 import MovieGrid from "@/components/MovieGrid.jsx";
@@ -6,6 +6,7 @@ import { getRecentMovies, addFavorite, removeFavorite, getFavorites, getMovieDet
 import EmptyState from "@/components/EmptyState";
 import MovieDetailsModal from "@/components/MovieDetailsModal";
 import SearchBar from "@/components/SearchBar";
+import Pagination from "@/components/Pagination";
 import { debounce } from "lodash";
 
 
@@ -21,21 +22,35 @@ export default function HomePage() {
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState([]);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalResults, setTotalResults] = useState(0);
+
+    const lastSearchQuery = useRef("");
+    const lastSearchPage = useRef(1);
+
     // Fetch recent movies
     useEffect(() => {
         async function fetchRecentMovies() {
+            if (searchQuery.trim()) return;
             try {
                 setLoading(true);
-                const response = await getRecentMovies();
-                setMovies(response.data);
+                const response = await getRecentMovies(currentPage);
+                setMovies(response.data.movies);
+                setTotalPages(response.data.totalPages);
+                setTotalResults(response.data.totalResults);
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (error) {
                 console.error("Erro ao buscar filmes:", error.message);
             } finally {
                 setLoading(false);
             }
         }
+
+
         fetchRecentMovies();
-    }, []);
+    }, [currentPage, searchQuery]);
 
     // Fetch Favorites movies
     useEffect(() => {
@@ -74,17 +89,22 @@ export default function HomePage() {
     }, [selectedMovieId]);
 
     // Fetch search movies
-    const fetchSearchResults = async (query) => {
+    const fetchSearchResults = async (query, page = 1) => {
         if (!query.trim()) {
             setSearchResults([]);
             setIsSearching(false);
+            setCurrentPage(1)
             return;
         }
 
         try {
             setIsSearching(true);
-            const response = await searchMovies(query);
-            setSearchResults(response.data || []);
+            const response = await searchMovies(query, page);
+            setSearchResults(response.data.movies || []);
+            setTotalPages(response.data.totalPages);
+            setTotalResults(response.data.totalResults);
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
             console.error("Erro ao buscar filmes:", error);
             setSearchResults([]);
@@ -95,14 +115,37 @@ export default function HomePage() {
 
     // debounce para pesquisa
     const debouncedFetch = useMemo(
-        () => debounce(fetchSearchResults, 500),
+        () => debounce((query, page) => {
+            fetchSearchResults(query, page);
+        }, 500),
         []
     );
 
     useEffect(() => {
-        debouncedFetch(searchQuery);
+        const isQueryChanged = searchQuery !== lastSearchQuery.current;
+        const isPageChanged = currentPage !== lastSearchPage.current;
+
+        if (searchQuery.trim()) {
+            if (isQueryChanged) {
+                lastSearchQuery.current = searchQuery;
+                lastSearchPage.current = 1;
+                setCurrentPage(1);
+                debouncedFetch(searchQuery, 1);
+            }
+            else if (isPageChanged) {
+                lastSearchPage.current = currentPage;
+                fetchSearchResults(searchQuery, currentPage);
+            }
+        } else {
+            setSearchResults([]);
+            setIsSearching(false);
+            setCurrentPage(1);
+            lastSearchQuery.current = "";
+            lastSearchPage.current = 1;
+        }
+
         return () => debouncedFetch.cancel();
-    }, [searchQuery, debouncedFetch]);
+    }, [searchQuery, currentPage, debouncedFetch]);
 
     const handleFavoriteToggle = async (id) => {
         try {
@@ -131,6 +174,12 @@ export default function HomePage() {
         setSelectedMovie(null);
     };
 
+    const handlePageChange = (page) => {
+        if (page !== currentPage && page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
     const favoritesSet = useMemo(
         () => new Set(favorites.map((f) => f.tmdbMovieId)),
         [favorites]
@@ -139,7 +188,7 @@ export default function HomePage() {
     const displayedMovies = searchQuery.trim() ? searchResults : movies;
     const isShowingSearchResults = searchQuery.trim().length > 0;
 
-    if (loading) {
+    if (loading && !isShowingSearchResults) {
         return (
             <div className="min-h-screen flex flex-col">
                 <Header
@@ -166,14 +215,14 @@ export default function HomePage() {
                 <div className="flex flex-col items-center gap-8 mb-8">
                     <div className="text-center space-y-2">
                         <h2 className="font-display font-bold text-4xl">
-                            {isShowingSearchResults 
-                                ? "Resultados da Pesquisa" 
+                            {isShowingSearchResults
+                                ? "Resultados da Pesquisa"
                                 : "Filmes em Alta"}
                         </h2>
                         <p className="text-muted-foreground text-lg">
                             {isShowingSearchResults
-                                ? `${searchResults.length} ${searchResults.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}`
-                                : "Descubra os filmes mais populares do momento"}
+                                ? `Página ${currentPage} de ${totalPages} • ${totalResults} resultados`
+                                : `Página ${currentPage} de ${totalPages} • ${totalResults} filmes`}
                         </p>
                     </div>
 
@@ -191,19 +240,35 @@ export default function HomePage() {
                 )}
 
                 {!isSearching && displayedMovies.length > 0 && (
-                    <MovieGrid
-                        movies={displayedMovies.map((movie) => ({
-                            id: movie.id,
-                            title: movie.title,
-                            posterPath: movie.posterPath
-                                ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
-                                : null,
-                            rating: movie.rating ?? 0,
-                            year: movie.year,
-                        }))}
-                        favorites={favoritesSet}
-                        onFavoriteToggle={handleFavoriteToggle}
-                        onMovieClick={handleMovieClick}
+                    <>
+                        <MovieGrid
+                            movies={displayedMovies.map((movie) => ({
+                                id: movie.id,
+                                title: movie.title,
+                                posterPath: movie.posterPath,
+                                rating: movie.rating ?? 0,
+                                year: movie.year,
+                            }))}
+                            favorites={favoritesSet}
+                            onFavoriteToggle={handleFavoriteToggle}
+                            onMovieClick={handleMovieClick}
+                        />
+
+                        {totalPages > 1 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={handlePageChange}
+                                isLoading={loading || isSearching}
+                            />
+                        )}
+                    </>
+                )}
+
+                {!isSearching && displayedMovies.length === 0 && (
+                    <EmptyState
+                        type={isShowingSearchResults ? "no-results" : "search"}
+                        query={searchQuery}
                     />
                 )}
             </main >
@@ -217,7 +282,6 @@ export default function HomePage() {
                 isFavorite={favorites.some((f) => f.tmdbMovieId === selectedMovieId)}
                 onFavoriteToggle={handleFavoriteToggle}
             />
-
         </div >
     );
 }
