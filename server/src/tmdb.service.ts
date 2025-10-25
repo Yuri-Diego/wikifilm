@@ -55,15 +55,15 @@ export class TMDbService {
     totalPages: number;
     totalResults: number;
   }> {
+    const safePage = Math.min(page, 500);
     const params = new URLSearchParams({
       api_key: this.apiKey,
       query: query,
       language: this.language,
-      page: String(page),
+      page: String(safePage),
     });
 
     const url = `${this.baseUrl}/search/movie?${params.toString()}`;
-    console.log(url)
 
     const response = await fetch(url);
 
@@ -87,7 +87,7 @@ export class TMDbService {
     return {
       movies,
       page: data.page,
-      totalPages: data.total_pages,
+      totalPages: Math.min(data.total_pages, 500),
       totalResults: data.total_results,
     }
   }
@@ -120,6 +120,7 @@ export class TMDbService {
 
   async getRecentMovies(currentPage: number = 1) {
     const today = new Date().toISOString().split('T')[0] ?? '1970-01-01';
+    const safePage = Math.min(currentPage, 500);
     const params = new URLSearchParams({
       api_key: this.apiKey,
       language: this.language,
@@ -127,7 +128,7 @@ export class TMDbService {
       'primary_release_date.lte': today,
       'vote_count.gte': '10',
       include_adult: 'false',
-      page: String(currentPage),
+      page: String(safePage),
     });
 
     const url = `https://api.themoviedb.org/3/discover/movie?${params.toString()}`;
@@ -160,7 +161,7 @@ export class TMDbService {
     return {
       movies,
       page: data.page,
-      totalPages: data.total_pages,
+      totalPages: Math.min(data.total_pages, 500),
       totalResults: data.total_results,
     };
   }
