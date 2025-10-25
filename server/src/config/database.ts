@@ -1,5 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 
+
+const isLocal = process.env.NODE_ENV !== "production";
+
+process.env.DATABASE_URL = isLocal
+  ? process.env.DATABASE_URL_LOCAL
+  : process.env.DATABASE_URL_NEON;
+
+
 export const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 });
