@@ -5,6 +5,7 @@ import { TooltipProvider } from "./components/ui/tooltip.jsx";
 import HomePage from "@/pages/HomePage.jsx";
 import FavoritesPage from "./pages/FavoritesPage.jsx";
 import SharedListPage from "./pages/SharedListPage.jsx";
+import NotFound from "./components/not-found.jsx";
 
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/favorites" component={FavoritesPage} />
       <Route path="/share/:shareId" component={SharedListPage} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
