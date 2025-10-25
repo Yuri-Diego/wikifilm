@@ -1,9 +1,11 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import { connectDatabase } from './src/config/database.js';
 import { getTMDbService } from './src/tmdb.service.js';
-import apiRoutes from './src/routes.js'
+import { swaggerSpec } from './src/config/swagger.config.js';
+import apiRoutes from './src/routes.js';
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3000;
@@ -15,7 +17,19 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use('/api', apiRoutes)
+// Configuração do Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Movies API - Documentation'
+}));
+
+// Endpoint para baixar o JSON do OpenAPI
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+app.use('/api', apiRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -37,6 +51,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`🚀 Backend server running on http://localhost:${PORT}`);
       console.log(`📡 API available at http://localhost:${PORT}/api`);
+      console.log(`📚 API Docs available at http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
