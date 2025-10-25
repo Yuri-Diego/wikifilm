@@ -11,7 +11,9 @@ export default function Header({
   showShareButton = false,
 }) {
   const [isDark, setIsDark] = useState(false);
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  const isFavoritesPage = location === "/favorites";
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
@@ -65,10 +67,15 @@ export default function Header({
             variant="outline"
             size="default"
             onClick={onFavoritesClick}
-            className="relative"
+            className="relative group"
             data-testid="button-favorites"
           >
-            <Heart className="w-4 h-4 mr-2" />
+            <Heart
+              className={`w-4 h-4 mr-2 transition-colors ${isFavoritesPage
+                ? "text-red-500 fill-red-500"
+                : "text-muted-foreground group-hover:text-red-400 group-hover:fill-red-400"
+                }`}
+            />
             Meus Favoritos
             {favoritesCount > 0 && (
               <Badge
