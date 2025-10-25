@@ -2,6 +2,7 @@ import { X, Heart, Calendar, Clock, Star } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function MovieDetailsModal({
   isOpen,
@@ -11,6 +12,7 @@ export default function MovieDetailsModal({
   isFavorite,
   onFavoriteToggle,
 }) {
+  const isMobile = useIsMobile();
   // Loading state
   if (loading || !movie) {
     return (
@@ -36,21 +38,21 @@ export default function MovieDetailsModal({
   }
 
   // Construir URLs das imagens
-  const backdropUrl = movie.backdropPath 
+  const backdropUrl = movie.backdropPath
     ? `https://image.tmdb.org/t/p/original${movie.backdropPath}`
     : null;
-  
+
   const posterUrl = movie.posterPath
     ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
     : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden" data-testid="modal-movie-details">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto" data-testid="modal-movie-details">
         <div className="relative">
           {/* Backdrop Image */}
-          {backdropUrl && (
-            <div className="relative h-64 w-full overflow-hidden">
+          {backdropUrl && !isMobile && (
+            <div className="relative h-48 md:h-64 w-full overflow-hidden">
               <img
                 src={backdropUrl}
                 alt={movie.title}
@@ -77,13 +79,13 @@ export default function MovieDetailsModal({
               <div className="flex-1 space-y-4">
                 {/* Title & Rating */}
                 <div>
-                  <h2 
-                    className="font-display font-semibold text-3xl mb-3" 
+                  <h2
+                    className="font-display font-semibold text-3xl mb-3"
                     data-testid="text-movie-title"
                   >
                     {movie.title}
                   </h2>
-                  
+
                   {/* Rating */}
                   {movie.rating && (
                     <div className="flex items-center gap-2">
@@ -122,8 +124,8 @@ export default function MovieDetailsModal({
                 {/* Overview */}
                 {movie.overview && (
                   <div className="prose prose-sm max-w-none">
-                    <p 
-                      className="text-muted-foreground leading-relaxed" 
+                    <p
+                      className="text-muted-foreground leading-relaxed"
                       data-testid="text-movie-overview"
                     >
                       {movie.overview}
