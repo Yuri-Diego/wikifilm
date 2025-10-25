@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function MovieCard({
   id,
@@ -15,6 +16,7 @@ export default function MovieCard({
   onClick,
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation();
@@ -41,7 +43,7 @@ export default function MovieCard({
             <Star className="w-12 h-12 text-muted-foreground/30" />
           </div>
         )}
-        
+
         <Badge
           className="absolute top-1 left-1 z-10 no-default-hover-elevate bg-yellow-300 text-black backdrop-blur-sm py-1 shadow-md transition-transform duration-500 ease-out group-hover:scale-95"
           data-testid={`badge-rating-${id}`}
@@ -69,7 +71,10 @@ export default function MovieCard({
               <Heart
                 className={`w-4 h-4 mr-2 ${isFavorite ? "fill-current" : ""}`}
               />
-              {isFavorite ? "Nos Favoritos" : "Adicionar aos Favoritos"}
+              {!isMobile && (
+                isFavorite ? "Nos Favoritos" : "Adicionar aos Favoritos"
+              )
+              }
             </Button>
           </div>
         </div>
