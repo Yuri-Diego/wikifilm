@@ -8,11 +8,12 @@ import MovieDetailsModal from "@/components/MovieDetailsModal";
 import SearchBar from "@/components/SearchBar";
 import Pagination from "@/components/Pagination";
 import { debounce } from "lodash";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function HomePage() {
     const [, navigate] = useLocation();
-    
+
     const getUrlParams = () => {
         const params = new URLSearchParams(window.location.search);
         return {
@@ -20,8 +21,10 @@ export default function HomePage() {
             page: parseInt(params.get('page') || '1', 10)
         };
     };
-    
+
     const urlParams = getUrlParams();
+    const { toast } = useToast()
+
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedMovieId, setSelectedMovieId] = useState(null);
@@ -43,9 +46,9 @@ export default function HomePage() {
     // Effect para carregamento INICIAL
     useEffect(() => {
         if (hasInitialized.current) return;
-        
+
         async function initialLoad() {
-            
+
             if (searchQuery.trim()) {
                 // Tem busca na URL
                 try {
@@ -54,8 +57,13 @@ export default function HomePage() {
                     setSearchResults(response.data.movies || []);
                     setTotalPages(response.data.totalPages);
                     setTotalResults(response.data.totalResults);
-                } catch (error) {
+                 } catch (error) {
                     console.error("Erro ao buscar filmes:", error);
+                    toast({
+                        title: "Erro na busca",
+                        description: "Não foi possível buscar os filmes.",
+                        variant: "destructive",
+                    });
                 } finally {
                     setIsSearching(false);
                     setLoading(false);
@@ -70,34 +78,39 @@ export default function HomePage() {
                     setTotalResults(response.data.totalResults);
                 } catch (error) {
                     console.error("Erro ao buscar filmes:", error);
+                    toast({
+                        title: "Erro ao carregar filmes",
+                        description: "Não foi possível carregar os filmes recentes.",
+                        variant: "destructive",
+                    });
                 } finally {
                     setLoading(false);
                 }
             }
-            
+
             hasInitialized.current = true;
         }
-        
+
         initialLoad();
-    }, []);
+    }, [toast]);
 
     // Sincronizar URL
     useEffect(() => {
         if (!hasInitialized.current) return;
-        
+
         const params = new URLSearchParams();
-        
+
         if (searchQuery.trim()) {
             params.set('query', searchQuery);
         }
-        
+
         if (currentPage > 1 || searchQuery.trim()) {
             params.set('page', String(currentPage));
         }
-        
+
         const newSearch = params.toString();
         const newUrl = newSearch ? `/?${newSearch}` : '/';
-        
+
         if (window.location.pathname + window.location.search !== newUrl) {
             window.history.pushState({}, '', newUrl);
         }
@@ -111,12 +124,12 @@ export default function HomePage() {
             setCurrentPage(params.page);
             lastSearchQuery.current = params.query;
             lastSearchPage.current = params.page;
-            
+
             if (params.query.trim()) {
                 fetchSearchResults(params.query, params.page);
             }
         };
-        
+
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
@@ -127,12 +140,17 @@ export default function HomePage() {
             try {
                 const response = await getFavorites();
                 setFavorites(response.data || []);
-            } catch (error) {
+             } catch (error) {
                 console.error("Erro ao buscar favoritos:", error);
+                toast({
+                    title: "Erro ao buscar favoritos",
+                    description: "Não foi possível carregar sua lista de favoritos.",
+                    variant: "destructive",
+                });
             }
         }
         fetchFavorites();
-    }, []);
+    }, [toast]);
 
     // Fetch movie details
     useEffect(() => {
@@ -149,13 +167,18 @@ export default function HomePage() {
             } catch (error) {
                 console.error("Erro ao buscar detalhes do filme:", error);
                 setSelectedMovie(null);
+                toast({
+                    title: "Erro ao buscar detalhes",
+                    description: "Não foi possível carregar os detalhes do filme.",
+                    variant: "destructive",
+                });
             } finally {
                 setLoadingDetails(false);
             }
         }
 
         fetchMovieDetails();
-    }, [selectedMovieId]);
+    }, [selectedMovieId, toast]);
 
     // Fetch search movies
     const fetchSearchResults = async (query, page = 1) => {
@@ -176,6 +199,11 @@ export default function HomePage() {
         } catch (error) {
             console.error("Erro ao buscar filmes:", error);
             setSearchResults([]);
+            toast({
+                title: "Erro na busca",
+                description: "Não foi possível buscar os filmes.",
+                variant: "destructive",
+            });
         } finally {
             setIsSearching(false);
         }
@@ -191,7 +219,7 @@ export default function HomePage() {
 
     useEffect(() => {
         if (!hasInitialized.current) return;
-        
+
         const isQueryChanged = searchQuery !== lastSearchQuery.current;
         const isPageChanged = currentPage !== lastSearchPage.current;
 
@@ -210,13 +238,13 @@ export default function HomePage() {
         } else {
             // Modo FILMES RECENTES
             if (isQueryChanged) {
-                // Limpou a busca
+                // Limpa a busca
                 setSearchResults([]);
                 setIsSearching(false);
                 lastSearchQuery.current = "";
                 lastSearchPage.current = 1;
                 setCurrentPage(1);
-                
+
                 // Buscar filmes recentes página 1
                 (async () => {
                     try {
@@ -228,13 +256,18 @@ export default function HomePage() {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     } catch (error) {
                         console.error("Erro ao buscar filmes:", error);
+                        toast({
+                            title: "Erro ao carregar filmes",
+                            description: "Não foi possível carregar os filmes recentes.",
+                            variant: "destructive",
+                        });
                     } finally {
                         setLoading(false);
                     }
                 })();
             } else if (isPageChanged) {
                 lastSearchPage.current = currentPage;
-                
+
                 (async () => {
                     try {
                         setLoading(true);
@@ -245,6 +278,11 @@ export default function HomePage() {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     } catch (error) {
                         console.error("Erro ao buscar filmes:", error);
+                        toast({
+                            title: "Erro ao carregar filmes",
+                            description: "Não foi possível carregar os filmes recentes.",
+                            variant: "destructive",
+                        });
                     } finally {
                         setLoading(false);
                     }
@@ -253,7 +291,7 @@ export default function HomePage() {
         }
 
         return () => debouncedFetch.cancel();
-    }, [searchQuery, currentPage, debouncedFetch]);
+    }, [searchQuery, currentPage, debouncedFetch, toast]);
 
     const handleFavoriteToggle = async (id) => {
         try {
@@ -262,14 +300,27 @@ export default function HomePage() {
                 setFavorites((prev) =>
                     prev.filter((f) => f.tmdbMovieId !== id)
                 );
+                toast({
+                    title: "Removido dos favoritos",
+                    description: "O filme foi removido da sua lista.",
+                });
             } else {
                 const movie = [...movies, ...searchResults].find((m) => m.id === id);
                 if (!movie) return;
                 const newFav = await addFavorite(movie);
                 setFavorites((prev) => [...prev, newFav.data]);
+                toast({
+                    title: "Adicionado aos favoritos",
+                    description: "O filme foi adicionado à sua lista.",
+                });
             }
         } catch (error) {
             console.error("Erro ao alterar favorito:", error);
+            toast({
+                title: "Erro ao alterar favorito",
+                description: "Não foi possível atualizar sua lista de favoritos.",
+                variant: "destructive",
+            });
         }
     };
 

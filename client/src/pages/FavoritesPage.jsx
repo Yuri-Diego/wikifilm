@@ -11,9 +11,11 @@ import { useLocation } from "wouter";
 import EmptyState from "@/components/EmptyState";
 import MovieDetailsModal from "@/components/MovieDetailsModal";
 import ShareDialog from "@/components/ShareDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FavoritesPage() {
     const [, setLocation] = useLocation();
+    const { toast } = useToast()
 
     const [favorites, setFavorites] = useState([]);
     const [selectedMovieId, setSelectedMovieId] = useState(null);
@@ -34,10 +36,15 @@ export default function FavoritesPage() {
                 setFavorites(response.data || []);
             } catch (error) {
                 console.error("Erro ao buscar favoritos:", error);
+                toast({
+                    title: "Erro ao buscar favoritos",
+                    description: "Não foi possível carregar sua lista de favoritos.",
+                    variant: "destructive",
+                });
             }
         }
         fetchFavorites();
-    }, []);
+    }, [toast]);
 
     // fetch movie details
     useEffect(() => {
@@ -46,7 +53,6 @@ export default function FavoritesPage() {
                 setSelectedMovie(null);
                 return;
             }
-
             try {
                 setLoadingDetails(true);
                 const response = await getMovieDetails(selectedMovieId);
@@ -54,13 +60,18 @@ export default function FavoritesPage() {
             } catch (error) {
                 console.error("Erro ao buscar detalhes do filme:", error);
                 setSelectedMovie(null);
+                toast({
+                    title: "Erro ao buscar detalhes",
+                    description: "Não foi possível carregar os detalhes do filme.",
+                    variant: "destructive",
+                });
             } finally {
                 setLoadingDetails(false);
             }
         }
 
         fetchMovieDetails();
-    }, [selectedMovieId]);
+    }, [selectedMovieId, toast]);
 
     // create shareLink
     const handleCreateShareLink = async () => {
@@ -72,9 +83,18 @@ export default function FavoritesPage() {
             const url = `${window.location.origin}/share/${data.shareId}`;
             setShareUrl(url);
             setShowShareDialog(true);
+            toast({
+                title: "Link criado com sucesso!",
+                description: "Seu link de compartilhamento está pronto.",
+            });
         } catch (err) {
             setShareError(err instanceof Error ? err.message : "Erro ao criar link");
             console.error("Erro ao criar link de compartilhamento:", err);
+            toast({
+                title: "Erro ao criar link",
+                description: err instanceof Error ? err.message : "Não foi possível criar o link de compartilhamento.",
+                variant: "destructive",
+            });
         } finally {
             setIsLoadingShare(false);
         }
@@ -86,11 +106,19 @@ export default function FavoritesPage() {
         try {
             await removeFavorite(id);
             setFavorites((prev) => prev.filter((f) => f.tmdbMovieId !== id));
+            toast({
+                title: "Removido dos favoritos",
+                description: "O filme foi removido da sua lista.",
+            });
         } catch (error) {
             console.error("Erro ao remover favorito:", error);
+            toast({
+                title: "Erro ao remover favorito",
+                description: "Não foi possível remover o filme da sua lista.",
+                variant: "destructive",
+            });
         }
     };
-
     const handleMovieClick = (id) => {
         setSelectedMovieId(id);
     };

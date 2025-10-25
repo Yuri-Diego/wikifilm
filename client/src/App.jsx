@@ -6,6 +6,7 @@ import HomePage from "@/pages/HomePage.jsx";
 import FavoritesPage from "./pages/FavoritesPage.jsx";
 import SharedListPage from "./pages/SharedListPage.jsx";
 import NotFound from "./components/not-found.jsx";
+import { Toaster } from "./components/ui/toaster.jsx";
 
 
 function Router() {
@@ -23,6 +24,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <Toaster />
         <Router />
       </TooltipProvider>
     </QueryClientProvider>
