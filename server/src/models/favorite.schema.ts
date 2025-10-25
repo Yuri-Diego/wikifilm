@@ -1,5 +1,5 @@
 import { prisma } from "../config/database.js";
-import type { Favorite as PrismaFavorite} from "../../generated/prisma/index.js";
+import type { Favorite as PrismaFavorite} from "@prisma/client";
 
 type Favorite = PrismaFavorite;
 
