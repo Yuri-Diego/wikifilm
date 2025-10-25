@@ -45,7 +45,6 @@ export default function HomePage() {
         if (hasInitialized.current) return;
         
         async function initialLoad() {
-            console.log('🚀 Carregamento inicial:', { searchQuery, currentPage });
             
             if (searchQuery.trim()) {
                 // Tem busca na URL
@@ -55,7 +54,6 @@ export default function HomePage() {
                     setSearchResults(response.data.movies || []);
                     setTotalPages(response.data.totalPages);
                     setTotalResults(response.data.totalResults);
-                    console.log('✅ Busca inicial completa');
                 } catch (error) {
                     console.error("Erro ao buscar filmes:", error);
                 } finally {
@@ -70,7 +68,6 @@ export default function HomePage() {
                     setMovies(response.data.movies);
                     setTotalPages(response.data.totalPages);
                     setTotalResults(response.data.totalResults);
-                    console.log('✅ Filmes recentes carregados');
                 } catch (error) {
                     console.error("Erro ao buscar filmes:", error);
                 } finally {
@@ -197,8 +194,6 @@ export default function HomePage() {
         
         const isQueryChanged = searchQuery !== lastSearchQuery.current;
         const isPageChanged = currentPage !== lastSearchPage.current;
-
-        console.log('🔄 Mudança detectada:', { isQueryChanged, isPageChanged, searchQuery, currentPage });
 
         if (searchQuery.trim()) {
             // Modo BUSCA
