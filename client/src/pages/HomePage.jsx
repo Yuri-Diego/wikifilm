@@ -11,48 +11,119 @@ import { debounce } from "lodash";
 
 
 export default function HomePage() {
-    const [, setLocation] = useLocation();
+    const [, navigate] = useLocation();
+    
+    const getUrlParams = () => {
+        const params = new URLSearchParams(window.location.search);
+        return {
+            query: params.get('query') || '',
+            page: parseInt(params.get('page') || '1', 10)
+        };
+    };
+    
+    const urlParams = getUrlParams();
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedMovieId, setSelectedMovieId] = useState(null);
     const [favorites, setFavorites] = useState([]);
     const [selectedMovie, setSelectedMovie] = useState();
     const [loadingDetails, setLoadingDetails] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(urlParams.query);
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState([]);
 
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(urlParams.page);
     const [totalPages, setTotalPages] = useState(0);
     const [totalResults, setTotalResults] = useState(0);
 
-    const lastSearchQuery = useRef("");
-    const lastSearchPage = useRef(1);
+    const lastSearchQuery = useRef(urlParams.query);
+    const lastSearchPage = useRef(urlParams.page);
+    const hasInitialized = useRef(false);
 
-    // Fetch recent movies
+    // Effect para carregamento INICIAL
     useEffect(() => {
-        async function fetchRecentMovies() {
-            if (searchQuery.trim()) return;
-            try {
-                setLoading(true);
-                const response = await getRecentMovies(currentPage);
-                setMovies(response.data.movies);
-                setTotalPages(response.data.totalPages);
-                setTotalResults(response.data.totalResults);
-
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (error) {
-                console.error("Erro ao buscar filmes:", error.message);
-            } finally {
-                setLoading(false);
+        if (hasInitialized.current) return;
+        
+        async function initialLoad() {
+            console.log('🚀 Carregamento inicial:', { searchQuery, currentPage });
+            
+            if (searchQuery.trim()) {
+                // Tem busca na URL
+                try {
+                    setIsSearching(true);
+                    const response = await searchMovies(searchQuery, currentPage);
+                    setSearchResults(response.data.movies || []);
+                    setTotalPages(response.data.totalPages);
+                    setTotalResults(response.data.totalResults);
+                    console.log('✅ Busca inicial completa');
+                } catch (error) {
+                    console.error("Erro ao buscar filmes:", error);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                // Sem busca, carregar filmes recentes
+                try {
+                    setLoading(true);
+                    const response = await getRecentMovies(currentPage);
+                    setMovies(response.data.movies);
+                    setTotalPages(response.data.totalPages);
+                    setTotalResults(response.data.totalResults);
+                    console.log('✅ Filmes recentes carregados');
+                } catch (error) {
+                    console.error("Erro ao buscar filmes:", error);
+                } finally {
+                    setLoading(false);
+                }
             }
+            
+            hasInitialized.current = true;
         }
+        
+        initialLoad();
+    }, []);
 
+    // Sincronizar URL
+    useEffect(() => {
+        if (!hasInitialized.current) return;
+        
+        const params = new URLSearchParams();
+        
+        if (searchQuery.trim()) {
+            params.set('query', searchQuery);
+        }
+        
+        if (currentPage > 1 || searchQuery.trim()) {
+            params.set('page', String(currentPage));
+        }
+        
+        const newSearch = params.toString();
+        const newUrl = newSearch ? `/?${newSearch}` : '/';
+        
+        if (window.location.pathname + window.location.search !== newUrl) {
+            window.history.pushState({}, '', newUrl);
+        }
+    }, [searchQuery, currentPage]);
 
-        fetchRecentMovies();
-    }, [currentPage, searchQuery]);
+    // Listener back/done button
+    useEffect(() => {
+        const handlePopState = () => {
+            const params = getUrlParams();
+            setSearchQuery(params.query);
+            setCurrentPage(params.page);
+            lastSearchQuery.current = params.query;
+            lastSearchPage.current = params.page;
+            
+            if (params.query.trim()) {
+                fetchSearchResults(params.query, params.page);
+            }
+        };
+        
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
 
-    // Fetch Favorites movies
+    // Fetch Favorites
     useEffect(() => {
         async function fetchFavorites() {
             try {
@@ -93,7 +164,7 @@ export default function HomePage() {
         if (!query.trim()) {
             setSearchResults([]);
             setIsSearching(false);
-            setCurrentPage(1)
+            setCurrentPage(1);
             return;
         }
 
@@ -103,7 +174,6 @@ export default function HomePage() {
             setSearchResults(response.data.movies || []);
             setTotalPages(response.data.totalPages);
             setTotalResults(response.data.totalResults);
-
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
             console.error("Erro ao buscar filmes:", error);
@@ -122,10 +192,15 @@ export default function HomePage() {
     );
 
     useEffect(() => {
+        if (!hasInitialized.current) return;
+        
         const isQueryChanged = searchQuery !== lastSearchQuery.current;
         const isPageChanged = currentPage !== lastSearchPage.current;
 
+        console.log('🔄 Mudança detectada:', { isQueryChanged, isPageChanged, searchQuery, currentPage });
+
         if (searchQuery.trim()) {
+            // Modo BUSCA
             if (isQueryChanged) {
                 lastSearchQuery.current = searchQuery;
                 lastSearchPage.current = 1;
@@ -137,11 +212,48 @@ export default function HomePage() {
                 fetchSearchResults(searchQuery, currentPage);
             }
         } else {
-            setSearchResults([]);
-            setIsSearching(false);
-            setCurrentPage(1);
-            lastSearchQuery.current = "";
-            lastSearchPage.current = 1;
+            // Modo FILMES RECENTES
+            if (isQueryChanged) {
+                // Limpou a busca
+                setSearchResults([]);
+                setIsSearching(false);
+                lastSearchQuery.current = "";
+                lastSearchPage.current = 1;
+                setCurrentPage(1);
+                
+                // Buscar filmes recentes página 1
+                (async () => {
+                    try {
+                        setLoading(true);
+                        const response = await getRecentMovies(1);
+                        setMovies(response.data.movies);
+                        setTotalPages(response.data.totalPages);
+                        setTotalResults(response.data.totalResults);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } catch (error) {
+                        console.error("Erro ao buscar filmes:", error);
+                    } finally {
+                        setLoading(false);
+                    }
+                })();
+            } else if (isPageChanged) {
+                lastSearchPage.current = currentPage;
+                
+                (async () => {
+                    try {
+                        setLoading(true);
+                        const response = await getRecentMovies(currentPage);
+                        setMovies(response.data.movies);
+                        setTotalPages(response.data.totalPages);
+                        setTotalResults(response.data.totalResults);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } catch (error) {
+                        console.error("Erro ao buscar filmes:", error);
+                    } finally {
+                        setLoading(false);
+                    }
+                })();
+            }
         }
 
         return () => debouncedFetch.cancel();
@@ -188,12 +300,12 @@ export default function HomePage() {
     const displayedMovies = searchQuery.trim() ? searchResults : movies;
     const isShowingSearchResults = searchQuery.trim().length > 0;
 
-    if (loading && !isShowingSearchResults) {
+    if ((loading || isSearching) && !hasInitialized.current) {
         return (
             <div className="min-h-screen flex flex-col">
                 <Header
                     favoritesCount={favorites.length}
-                    onFavoritesClick={() => setLocation("/favorites")}
+                    onFavoritesClick={() => navigate("/favorites")}
                 />
                 <main className="flex-1 container mx-auto px-4 py-8">
                     <div className="text-center">
@@ -208,7 +320,7 @@ export default function HomePage() {
         <div className="min-h-screen flex flex-col">
             <Header
                 favoritesCount={favorites.length}
-                onFavoritesClick={() => setLocation("/favorites")}
+                onFavoritesClick={() => navigate("/favorites")}
             />
 
             <main className="flex-1 container mx-auto px-4 py-8">
@@ -271,8 +383,7 @@ export default function HomePage() {
                         query={searchQuery}
                     />
                 )}
-            </main >
-
+            </main>
 
             <MovieDetailsModal
                 isOpen={selectedMovie !== null}
@@ -282,6 +393,6 @@ export default function HomePage() {
                 isFavorite={favorites.some((f) => f.tmdbMovieId === selectedMovieId)}
                 onFavoriteToggle={handleFavoriteToggle}
             />
-        </div >
+        </div>
     );
 }
