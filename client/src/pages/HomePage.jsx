@@ -60,6 +60,7 @@ export default function HomePage() {
                     console.error("Erro ao buscar filmes:", error);
                 } finally {
                     setIsSearching(false);
+                    setLoading(false);
                 }
             } else {
                 // Sem busca, carregar filmes recentes
