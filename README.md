@@ -1,7 +1,8 @@
 # 🎬 WIKIFILM
 
-![Screenshot 1](./public/search.png)
-![Screenshot 2](./public/MovieDetailsDarkTheme.png)
+![Screenshot 1](./assets/search.png)
+
+![Screenshot 2](./assets/MovieDetailsDarkTheme.png)
 
 ## 📖 Sobre o Projeto
 
