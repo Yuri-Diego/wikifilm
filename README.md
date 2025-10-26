@@ -125,7 +125,7 @@ Ou se preferir ver online sem está com a aplicação rodando localmente, acesse
 ```
 https://wikifilm.onrender.com/api-docs/
 ```
-![Screenshot 2](./public/Swagger%20ui.png)
+![Screenshot 2](./assets/Swagger%20ui.png)
 
 ## 🌐 Links do Projeto
 
